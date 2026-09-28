@@ -9,9 +9,9 @@
 ![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-pronto-2496ED?logo=docker&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-20%20passando-brightgreen)
+![Testes](https://img.shields.io/badge/testes-25%20passando-brightgreen)
 
-🌐 **Demo:** *(adicione aqui o link do deploy no Render)* &nbsp;·&nbsp; ⏱️ *plano gratuito: a primeira requisição pode levar ~30 s*
+🌐 **Demo ao vivo:** [auth-system-a12j.onrender.com](https://auth-system-a12j.onrender.com) &nbsp;·&nbsp; ⏱️ *plano gratuito: a primeira requisição pode levar ~30 s*
 
 </div>
 
@@ -24,6 +24,7 @@
 - [Stack](#-stack)
 - [Como rodar](#-como-rodar)
 - [Configuração](#-configuração)
+- [E-mail real de recuperação](#-e-mail-real-de-recuperação)
 - [Referência da API](#-referência-da-api)
 - [Fluxo de recuperação de senha](#-fluxo-de-recuperação-de-senha)
 - [Decisões de segurança](#-decisões-de-segurança)
@@ -107,8 +108,33 @@ Cole o resultado em `JWT_SECRET`. **Nunca suba o `.env` para o GitHub** (ele já
 | `APP_URL` | não | `http://localhost:3000` | Base do link enviado no e-mail de recuperação |
 | `CORS_ORIGIN` | não | *(bloqueado)* | Origens permitidas, separadas por vírgula |
 | `TRUST_PROXY` | não | *(desligado)* | Use `1` atrás de proxy (Render, Nginx) para o rate limit enxergar o IP real |
+| `EMAIL_PROVIDER` | não | *(simulado)* | `brevo` ativa o envio real de e-mail. Sem ele, o link aparece só no console |
+| `EMAIL_API_KEY` | com `brevo` | — | Chave da API da Brevo (**segredo**: só em variável de ambiente) |
+| `EMAIL_FROM` | com `brevo` | — | E-mail remetente, já verificado na Brevo |
+| `EMAIL_FROM_NAME` | não | `Auth System` | Nome exibido como remetente |
 
 > O `npm start` não lê o arquivo `.env` sozinho. Use `node --env-file=.env server.js` ou defina a variável no terminal. O Docker Compose lê o `.env` automaticamente.
+
+## 📧 E-mail real de recuperação
+
+Por padrão o e-mail é **simulado** (o link aparece no console). Para enviar de verdade, o projeto usa a **API HTTPS da [Brevo](https://www.brevo.com)** (plano gratuito com 300 e-mails/dia, sem cartão).
+
+> Por que API e não SMTP? O plano gratuito do Render **bloqueia** conexões SMTP (portas 25, 465 e 587). Enviar por HTTPS funciona em qualquer plano.
+
+1. Crie uma conta na Brevo e, em **Senders, Domains & Dedicated IPs → Senders**, adicione e **verifique** o e-mail que será o remetente.
+2. Em **SMTP & API → API Keys**, gere uma chave e copie (ela só aparece uma vez).
+3. Defina as variáveis no ambiente (no Render: aba **Environment**):
+
+```env
+EMAIL_PROVIDER=brevo
+EMAIL_API_KEY=xkeysib-...
+EMAIL_FROM=seu-email-verificado@exemplo.com
+EMAIL_FROM_NAME=Auth System
+```
+
+Cuidados de segurança na implementação (`mailer.js`): o envio **não bloqueia** a resposta da rota (o tempo não revela se o e-mail existe), falhas do provedor vão só para o log e não mudam a resposta ao usuário, o **token nunca é escrito no log** no modo real, e a chave da API não aparece em mensagens de erro.
+
+> Remetente `@gmail.com` costuma cair no spam, porque o Gmail não autoriza a Brevo a enviar em nome dele. Para produção, verifique um domínio próprio (SPF/DKIM).
 
 ## 📡 Referência da API
 
@@ -179,7 +205,7 @@ sequenceDiagram
     A-->>U: 200 senha redefinida
 ```
 
-> **Ambiente local:** o envio de e-mail é **simulado**. O link aparece no console do servidor com o prefixo `📧 [e-mail simulado]`. Para produção, troque a função em `mailer.js` por um provedor real (nodemailer, SES, SendGrid...).
+> **Sem `EMAIL_PROVIDER`:** o envio é **simulado** e o link aparece no console do servidor (`📧 [e-mail simulado]`). Para receber o e-mail de verdade, veja [E-mail real de recuperação](#-e-mail-real-de-recuperação).
 
 ## 🛡️ Decisões de segurança
 
@@ -202,7 +228,7 @@ sequenceDiagram
 npm test
 ```
 
-**20 testes de integração** com `node:test`. Eles sobem a API de verdade numa porta aleatória, com banco em memória, e chamam os endpoints via HTTP. Sem dependências extras.
+**25 testes** com `node:test`. Eles sobem a API de verdade numa porta aleatória, com banco em memória, e chamam os endpoints via HTTP. Sem dependências extras.
 
 | Área | Testes | O que é verificado |
 |---|:-:|---|
@@ -210,15 +236,16 @@ npm test
 | Cadastro | 4 | E-mail duplicado (mesmo com maiúsculas), senha fraca, e-mail inválido, senha guardada como hash |
 | Login e JWT | 4 | Login abre `/me`; erro de senha e e-mail inexistente dão a mesma resposta; token forjado (`alg: none`, outro segredo) é recusado; JSON malformado |
 | Bloqueio | 2 | 5 erros bloqueiam (até com a senha certa); o bloqueio expira; login válido zera o contador |
-| Recuperação | 9 | Resposta idêntica; só o hash é guardado; validade de 30 min; uso único; token expirado ou malformado; novo pedido invalida o anterior; JWT antigo deixa de valer |
+| Recuperação | 10 | Resposta idêntica; falha do provedor de e-mail não muda a resposta; só o hash é guardado; validade de 30 min; uso único; token expirado ou malformado; novo pedido invalida o anterior; JWT antigo deixa de valer |
+| E-mail (`mailer`) | 4 | Modo simulado não chama a rede; envio à Brevo com chave, remetente e link corretos (token fora do log); erro da API sem vazar a chave; configuração incompleta |
 
-O envio de e-mail fica isolado em `mailer.js`, então os testes o substituem por um mock e capturam o token sem ler o console.
+O envio de e-mail fica isolado em `mailer.js`: os testes de API o substituem por um mock (e capturam o token sem ler o console) e os testes do próprio `mailer` simulam a resposta da Brevo. Nenhum e-mail real é enviado nos testes.
 
 ## 🚢 CI/CD e deploy
 
 **GitHub Actions** (`.github/workflows/ci.yml`), a cada push e pull request:
 
-1. `npm test`: os 20 testes
+1. `npm test`: os 25 testes
 2. `npm audit --omit=dev --audit-level=high`: falha se houver dependência com vulnerabilidade alta ou crítica
 3. Build da imagem Docker: garante que o `Dockerfile` sempre funciona
 
@@ -239,9 +266,9 @@ auth-system/
 ├── server.js               # rotas, middlewares e configuração do Express
 ├── security.js             # hash de senha, JWT e SHA-256
 ├── db.js                   # schema SQLite (usuarios, reset_tokens)
-├── mailer.js               # envio do e-mail de recuperação (simulado)
+├── mailer.js               # e-mail de recuperação (simulado ou real via Brevo)
 ├── public/                 # interface web (HTML, CSS, JS)
-├── test/auth.test.js       # testes de integração
+├── test/                   # auth.test.js (API) e mailer.test.js (e-mail)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── render.yaml             # deploy declarativo no Render
@@ -253,7 +280,7 @@ auth-system/
 
 ## ⚠️ Limitações conhecidas
 
-- **E-mail simulado:** o link de recuperação aparece no log do servidor, não na caixa de entrada. Na demo pública, ele só é visível nos logs do Render.
+- **E-mail real é opcional:** sem configurar a Brevo, o link de recuperação aparece só no log do servidor (na demo, nos logs do Render).
 - **Banco no plano gratuito do Render:** o disco não é persistente, então o SQLite reseta a cada deploy. Serve para demonstração, não para produção.
 - **Token no `sessionStorage`:** simples, mas exposto se algum dia houver uma falha de XSS. A alternativa mais segura é cookie `httpOnly`.
 - **Sem logout no servidor:** "Sair" apenas descarta o token no navegador; ele vale até expirar (1 h) ou até a senha ser trocada.
@@ -262,7 +289,7 @@ auth-system/
 
 - [ ] Refresh token com rotação e logout real (revogação no servidor)
 - [ ] Cookie `httpOnly` + proteção CSRF
-- [ ] Envio real de e-mail (nodemailer)
+- [x] Envio real de e-mail (API da Brevo)
 - [ ] Verificação de e-mail no cadastro
 - [ ] 2FA com TOTP
 - [ ] Migração para PostgreSQL
@@ -273,5 +300,5 @@ auth-system/
 **Gustavo do Rosário Nunes**
 Estudante de Engenharia de Software (Univille) · Backend e Segurança de Aplicações
 
-[GitHub] (https://github.com/gustavorosarionunes)
-[LinkedIn](https://www.linkedin.com/in/gustavo-do-rosario-nunes)
+[![GitHub](https://img.shields.io/badge/GitHub-gustavorosarionunes-181717?logo=github)](https://github.com/gustavorosarionunes)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-gustavo--do--rosario--nunes-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/gustavo-do-rosario-nunes)
