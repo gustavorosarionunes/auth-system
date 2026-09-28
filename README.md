@@ -274,4 +274,4 @@ auth-system/
 Estudante de Engenharia de Software (Univille) · Backend e Segurança de Aplicações
 
 [GitHub] (https://github.com/gustavorosarionunes)
-![LinkedIn](https://www.linkedin.com/in/gustavo-do-rosario-nunes)
+[LinkedIn](https://www.linkedin.com/in/gustavo-do-rosario-nunes)
