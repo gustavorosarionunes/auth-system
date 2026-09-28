@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: auth-system
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/saude
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true      # o Render gera um segredo aleatório e seguro
+      - key: TRUST_PROXY
+        value: "1"               # o Render fica na frente do app (necessário p/ rate limit por IP)
+      - key: APP_URL
+        sync: false              # o Render pergunta no deploy: cole a URL pública do serviço

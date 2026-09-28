@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no arquivo .env}
+    volumes:
+      - dados:/data   # o banco sobrevive a reinícios do container
+
+volumes:
+  dados:

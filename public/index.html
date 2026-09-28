@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autenticação</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>🔐 Autenticação</h1>
+    <p id="msg" role="alert" hidden></p>
+
+    <section id="v-login">
+      <h2>Entrar</h2>
+      <form id="f-login">
+        <label>E-mail <input name="email" type="email" autocomplete="username" required></label>
+        <label>Senha <input name="senha" type="password" autocomplete="current-password" required></label>
+        <button>Entrar</button>
+      </form>
+      <p class="links"><a href="#" data-ir="esqueci">Esqueci minha senha</a> · <a href="#" data-ir="cadastro">Criar conta</a></p>
+    </section>
+
+    <section id="v-cadastro" hidden>
+      <h2>Criar conta</h2>
+      <form id="f-cadastro">
+        <label>Nome <input name="nome" autocomplete="name" minlength="2" maxlength="100" required></label>
+        <label>E-mail <input name="email" type="email" autocomplete="username" required></label>
+        <label>Senha <input name="senha" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          <small>8+ caracteres, com letras e números</small></label>
+        <button>Cadastrar</button>
+      </form>
+      <p class="links"><a href="#" data-ir="login">Já tenho conta</a></p>
+    </section>
+
+    <section id="v-esqueci" hidden>
+      <h2>Recuperar senha</h2>
+      <form id="f-esqueci">
+        <label>E-mail <input name="email" type="email" autocomplete="username" required></label>
+        <button>Enviar instruções</button>
+      </form>
+      <p class="links"><a href="#" data-ir="login">Voltar</a></p>
+    </section>
+
+    <section id="v-redefinir" hidden>
+      <h2>Nova senha</h2>
+      <form id="f-redefinir">
+        <label>Nova senha <input name="novaSenha" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          <small>8+ caracteres, com letras e números</small></label>
+        <button>Redefinir senha</button>
+      </form>
+    </section>
+
+    <section id="v-painel" hidden>
+      <h2>Você está logado ✅</h2>
+      <p>Nome: <strong id="p-nome"></strong></p>
+      <p>E-mail: <strong id="p-email"></strong></p>
+      <button id="sair" class="sec">Sair</button>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
